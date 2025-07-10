@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Spinning Globe Wallpaper</title>
+  <style>
+    html, body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    #globeViz {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #clock {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 3em;
+      color: #ffffff;
+      font-weight: 300;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="globeViz"></div>
+  <div id="clock">--:--:--</div>
+
+  <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
+  <script src="https://unpkg.com/globe.gl"></script>
+  <script src="https://unpkg.com/topojson@3"></script>
+  <script>
+    const world = Globe()
+      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+      .backgroundColor('#000000')
+      .showAtmosphere(true)
+      .atmosphereColor('#00ffff')
+      .atmosphereAltitude(0.15)
+      .showGraticules(true);
+
+    const globeContainer = document.getElementById('globeViz');
+    world(globeContainer);
+
+    // Delay setting controls to ensure globe is mounted
+    setTimeout(() => {
+      const controls = world.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = false;
+      controls.enablePan = false;
+    }, 100);
+
+    // Load country polygons
+    fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
+      .then(res => res.json())
+      .then(countries => {
+        const { features } = topojson.feature(countries, countries.objects.countries);
+        world.polygonsData(features)
+          .polygonCapColor(() => 'rgba(255, 255, 255, 0.05)')
+          .polygonSideColor(() => 'rgba(255, 255, 255, 0.02)')
+          .polygonStrokeColor(() => '#ffffff');
+      });
+
+    // Digital clock
+    function updateClock() {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      document.getElementById('clock').textContent = timeString;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>
