@@ -27,6 +27,7 @@
       color: #ffffff;
       font-weight: 300;
       text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      z-index: 1;
     }
   </style>
 </head>
@@ -37,39 +38,72 @@
   <script src="https://unpkg.com/three@0.150.1/build/three.min.js"></script>
   <script src="https://unpkg.com/globe.gl"></script>
   <script src="https://unpkg.com/topojson@3"></script>
+
   <script>
+    // Initialize Globe
     const world = Globe()
       .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
       .backgroundColor('#000000')
       .showAtmosphere(true)
-      .atmosphereColor('#00ffff')
-      .atmosphereAltitude(0.15)
-      .showGraticules(true);
+      .atmosphereColor('#00aaff')
+      .atmosphereAltitude(0.2)
+      .showGraticules(false);
 
     const globeContainer = document.getElementById('globeViz');
     world(globeContainer);
 
-    // Delay setting controls to ensure globe is mounted
+    // Delay control setup
     setTimeout(() => {
       const controls = world.controls();
       controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
+      controls.autoRotateSpeed = 0.4;
       controls.enableZoom = false;
       controls.enablePan = false;
     }, 100);
 
-    // Load country polygons
-    fetch('https://unpkg.com/world-atlas@2/countries-110m.json')
-      .then(res => res.json())
-      .then(countries => {
-        const { features } = topojson.feature(countries, countries.objects.countries);
-        world.polygonsData(features)
-          .polygonCapColor(() => 'rgba(255, 255, 255, 0.05)')
-          .polygonSideColor(() => 'rgba(255, 255, 255, 0.02)')
-          .polygonStrokeColor(() => '#ffffff');
+    // Add stars to the same Three.js scene
+    const addStarsToScene = () => {
+      const scene = world.scene();
+      const starGeometry = new THREE.BufferGeometry();
+      const starCount = 1000;
+      const starVertices = [];
+
+      for (let i = 0; i < starCount; i++) {
+        const x = (Math.random() - 0.5) * 1000;
+        const y = (Math.random() - 0.5) * 1000;
+        const z = (Math.random() - 0.5) * 1000;
+        starVertices.push(x, y, z);
+      }
+
+      starGeometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(starVertices, 3)
+      );
+
+      const starMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 1,
+        sizeAttenuation: true
       });
 
-    // Digital clock
+      const stars = new THREE.Points(starGeometry, starMaterial);
+      scene.add(stars);
+    };
+
+    addStarsToScene();
+
+    // Load only land shapes, not countries
+    fetch('https://unpkg.com/world-atlas@2/land-110m.json')
+      .then(res => res.json())
+      .then(landData => {
+        const land = topojson.feature(landData, landData.objects.land).features;
+        world.polygonsData(land)
+          .polygonCapColor(() => 'rgba(255, 255, 255, 0.06)')
+          .polygonSideColor(() => 'rgba(255, 255, 255, 0.02)')
+          .polygonStrokeColor(() => '#aaa');
+      });
+
+    // Clock
     function updateClock() {
       const now = new Date();
       const timeString = now.toLocaleTimeString();
